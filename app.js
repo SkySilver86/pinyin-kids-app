@@ -22,7 +22,7 @@ const pinyinData = {
     tones: ['ā', 'á', 'ǎ', 'à']
 };
 
-// 修正發音映射：解決英文發音問題
+// 修正發音映射：包含聲調音頻修正
 const soundMapping = {
     'b': '波', 'p': '坡', 'm': '摸', 'f': '佛',
     'd': '得', 't': '特', 'n': '呢', 'l': '勒',
@@ -38,7 +38,12 @@ const soundMapping = {
     'ang': '昂', 'eng': '亨', 'ing': '英', 'ong': '翁',
     'zhi': '知', 'chi': '吃', 'shi': '師', 'ri': '日',
     'zi': '資', 'ci': '刺', 'si': '思',
-    'yi': '衣', 'wu': '屋', 'yu': '淤', 'ye': '耶', 'yue': '約'
+    'yi': '衣', 'wu': '屋', 'yu': '淤', 'ye': '耶', 'yue': '約',
+    // 聲調發音修正：明確標記聲調
+    'ā': '第一聲 啊', 
+    'á': '第二聲 啊', 
+    'ǎ': '第三聲 啊', 
+    'à': '第四聲 啊'
 };
 
 const mascots = [
@@ -46,6 +51,9 @@ const mascots = [
     { id: 'kitty', name: '萌小貓', img: 'assets/mascot_kitty.png', unlockAt: 10 },
     { id: 'bunny', name: '跳跳兔', img: 'assets/mascot_bunny.png', unlockAt: 30 },
     { id: 'tiger', name: '小帥虎', img: 'assets/mascot_tiger.png', unlockAt: 50 },
+    { id: 'puppy', name: '旺財狗', img: 'assets/mascot_puppy.png', unlockAt: 80 },
+    { id: 'elephant', name: '大象君', img: 'assets/mascot_elephant.png', unlockAt: 120 },
+    { id: 'monkey', name: '皮皮猴', img: 'assets/mascot_monkey.png', unlockAt: 180 },
 ];
 
 let currentCategory = 'shengmu';
@@ -62,12 +70,16 @@ function initApp() {
 
 function updateProgressUI() {
     document.getElementById('total-score').innerText = score;
-    // Check for unlocks
-    mascots.forEach(m => {
-        if (score >= m.unlockAt) {
-            document.querySelector(`.mascot-option[data-id="${m.id}"]`)?.classList.remove('locked');
-        }
-    });
+    const mascotContainer = document.querySelector('.mascot-selection-grid');
+    if (mascotContainer) {
+        mascotContainer.innerHTML = mascots.map(m => `
+            <div class="mascot-option ${score < m.unlockAt ? 'locked' : ''}" data-id="${m.id}" onclick="changeMascot('${m.id}')">
+                <img src="${m.img}">
+                <p>${m.name} (${m.unlockAt}分)</p>
+                ${score < m.unlockAt ? '<div class="lock-overlay"><i class="fas fa-lock"></i></div>' : ''}
+            </div>
+        `).join('');
+    }
 }
 
 function filterCategory(category) {
@@ -80,7 +92,7 @@ function filterCategory(category) {
 }
 
 function getCategoryName(category) {
-    const names = { shengmu: '聲母', yunmu: '韻母', overall: '整體認讀', tones: '聲調' };
+    const names = { shengmu: '聲母', yunmu: '韻母', overall: '整體', tones: '聲調' };
     return names[category] || '';
 }
 
@@ -105,11 +117,10 @@ function openLetter(letter) {
     document.getElementById('rec-status').innerText = '準備好跟我讀了嗎？';
     speak(letter);
 
-    // Save progress
     if (!learned.includes(letter)) {
         learned.push(letter);
         localStorage.setItem('pinyin_learned', JSON.stringify(learned));
-        renderCards(currentCategory); // refresh UI
+        renderCards(currentCategory);
     }
 }
 
@@ -117,7 +128,6 @@ function speak(text) {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     
-    // 使用映射表或原文字
     const soundContent = soundMapping[text] || text;
     const utterance = new SpeechSynthesisUtterance(soundContent);
     const voices = window.speechSynthesis.getVoices();
@@ -130,12 +140,8 @@ function speak(text) {
     window.speechSynthesis.speak(utterance);
 }
 
-// 語音識別功能
 function setupRecognition() {
-    if (!('webkitSpeechRecognition' in window)) {
-        console.warn("此瀏覽器不支援語音識別");
-        return;
-    }
+    if (!('webkitSpeechRecognition' in window)) return;
     recognition = new webkitSpeechRecognition();
     recognition.lang = 'zh-CN';
     recognition.continuous = false;
@@ -144,9 +150,6 @@ function setupRecognition() {
     recognition.onresult = (event) => {
         const result = event.results[0][0].transcript;
         const status = document.getElementById('rec-status');
-        console.log("聽到的內容:", result);
-        
-        // 簡單判斷：如果聽到的字包含在發音映射中或兩者相近
         if (result.includes(selectedLetter) || result.includes(soundMapping[selectedLetter])) {
             status.innerHTML = "🎉 <span style='color: #28A745'>發音正確！好棒！</span>";
             addScore(2);
@@ -154,20 +157,14 @@ function setupRecognition() {
             status.innerHTML = "🤏 <span style='color: #FF9F43'>差一點點，再試一次！</span>";
         }
     };
-
-    recognition.onend = () => {
-        document.getElementById('mic-btn').classList.remove('pulse');
-    };
+    recognition.onend = () => { document.getElementById('mic-btn').classList.remove('pulse'); };
 }
 
 function startListening() {
-    if (!recognition) {
-        alert("語音功能僅支援部分瀏覽器（如 Chrome/Safari）");
-        return;
-    }
+    if (!recognition) return;
     document.getElementById('mic-btn').classList.add('pulse');
     document.getElementById('rec-status').innerText = '正在聽你說話...';
-    recognition.start();
+    try { recognition.start(); } catch(e) {}
 }
 
 function addScore(points) {
@@ -181,26 +178,22 @@ function closeModal() {
     if (recognition) recognition.stop();
 }
 
-// 切換視圖 (首頁, 遊戲, 角色)
 function switchView(view) {
     ['home-view', 'game-view', 'mascot-view'].forEach(v => {
         document.getElementById(v).style.display = (v === view + '-view') ? 'block' : 'none';
     });
-    
     document.querySelectorAll('.nav-item').forEach(item => {
         item.classList.toggle('active', item.id === 'nav-' + view);
     });
-
     if (view === 'game') startNewRound();
     if (view === 'mascot') updateProgressUI();
 }
 
-// 簡單拼音挑戰遊戲
 let gameAnswer = '';
 function startNewRound() {
     const grid = document.getElementById('game-grid');
     grid.innerHTML = '';
-    const allItems = [...pinyinData.shengmu, ...pinyinData.yunmu];
+    const allItems = [...pinyinData.shengmu, ...pinyinData.yunmu, ...pinyinData.tones];
     const options = [];
     while (options.length < 4) {
         const rand = allItems[Math.floor(Math.random() * allItems.length)];
