@@ -22,50 +22,77 @@ const pinyinData = {
     tones: ['ā', 'á', 'ǎ', 'à']
 };
 
+// 修正發音映射：解決英文發音問題
+const soundMapping = {
+    'b': '波', 'p': '坡', 'm': '摸', 'f': '佛',
+    'd': '得', 't': '特', 'n': '呢', 'l': '勒',
+    'g': '哥', 'k': '科', 'h': '喝',
+    'j': '雞', 'q': '七', 'x': '希',
+    'zh': '知', 'ch': '吃', 'sh': '師', 'r': '日',
+    'z': '資', 'c': '次', 's': '思',
+    'y': '衣', 'w': '烏',
+    'a': '啊', 'o': '喔', 'e': '鵝', 'i': '衣', 'u': '屋', 'ü': '淤',
+    'ai': '哀', 'ei': '欸', 'ui': '威', 'ao': '熬', 'ou': '歐', 'iu': '優',
+    'ie': '耶', 'üe': '約', 'er': '兒',
+    'an': '安', 'en': '恩', 'in': '因', 'un': '溫', 'ün': '暈',
+    'ang': '昂', 'eng': '亨', 'ing': '英', 'ong': '翁',
+    'zhi': '知', 'chi': '吃', 'shi': '師', 'ri': '日',
+    'zi': '資', 'ci': '刺', 'si': '思',
+    'yi': '衣', 'wu': '屋', 'yu': '淤', 'ye': '耶', 'yue': '約'
+};
+
+const mascots = [
+    { id: 'panda', name: '小熊貓', img: 'assets/mascot.png', unlockAt: 0 },
+    { id: 'kitty', name: '萌小貓', img: 'assets/mascot_kitty.png', unlockAt: 10 },
+    { id: 'bunny', name: '跳跳兔', img: 'assets/mascot_bunny.png', unlockAt: 30 },
+    { id: 'tiger', name: '小帥虎', img: 'assets/mascot_tiger.png', unlockAt: 50 },
+];
+
 let currentCategory = 'shengmu';
 let selectedLetter = '';
+let score = parseInt(localStorage.getItem('pinyin_score') || '0');
+let learned = JSON.parse(localStorage.getItem('pinyin_learned') || '[]');
+let recognition;
 
 function initApp() {
+    updateProgressUI();
     renderCards(currentCategory);
+    setupRecognition();
+}
+
+function updateProgressUI() {
+    document.getElementById('total-score').innerText = score;
+    // Check for unlocks
+    mascots.forEach(m => {
+        if (score >= m.unlockAt) {
+            document.querySelector(`.mascot-option[data-id="${m.id}"]`)?.classList.remove('locked');
+        }
+    });
 }
 
 function filterCategory(category) {
     currentCategory = category;
-    
-    // Update active tab
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active');
-        if (btn.innerText.includes(getCategoryName(category))) {
-            btn.classList.add('active');
-        }
+        if (btn.innerText.includes(getCategoryName(category))) btn.classList.add('active');
     });
-
     renderCards(category);
 }
 
 function getCategoryName(category) {
-    switch(category) {
-        case 'shengmu': return '聲母';
-        case 'yunmu': return '韻母';
-        case 'overall': return '整體認讀';
-        case 'tones': return '聲調';
-        default: return '';
-    }
+    const names = { shengmu: '聲母', yunmu: '韻母', overall: '整體認讀', tones: '聲調' };
+    return names[category] || '';
 }
 
 function renderCards(category) {
     const grid = document.getElementById('main-grid');
     grid.innerHTML = '';
-
     pinyinData[category].forEach((item, index) => {
+        const isLearned = learned.includes(item);
         const card = document.createElement('div');
-        card.className = `card ${category}`;
+        card.className = `card ${category} ${isLearned ? 'learned' : ''}`;
         card.style.animation = `zoomIn 0.3s ease-out ${index * 0.05}s both`;
-        
-        card.innerHTML = `
-            <span class="letter">${item}</span>
-        `;
-        
+        card.innerHTML = `<span class="letter">${item}</span>${isLearned ? '<i class="fas fa-check-circle checkmark"></i>' : ''}`;
         card.onclick = () => openLetter(item);
         grid.appendChild(card);
     });
@@ -73,141 +100,146 @@ function renderCards(category) {
 
 function openLetter(letter) {
     selectedLetter = letter;
-    const modal = document.getElementById('letter-modal');
-    const modalLetter = document.getElementById('modal-letter');
-    
-    modalLetter.innerText = letter;
-    modal.style.display = 'flex';
-    
-    // Auto speak
+    document.getElementById('modal-letter').innerText = letter;
+    document.getElementById('letter-modal').style.display = 'flex';
+    document.getElementById('rec-status').innerText = '準備好跟我讀了嗎？';
     speak(letter);
+
+    // Save progress
+    if (!learned.includes(letter)) {
+        learned.push(letter);
+        localStorage.setItem('pinyin_learned', JSON.stringify(learned));
+        renderCards(currentCategory); // refresh UI
+    }
+}
+
+function speak(text) {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    
+    // 使用映射表或原文字
+    const soundContent = soundMapping[text] || text;
+    const utterance = new SpeechSynthesisUtterance(soundContent);
+    const voices = window.speechSynthesis.getVoices();
+    const zhVoice = voices.find(v => v.lang.includes('zh-CN')) || voices.find(v => v.lang.includes('zh'));
+    
+    if (zhVoice) utterance.voice = zhVoice;
+    utterance.lang = 'zh-CN';
+    utterance.rate = 0.7;
+    utterance.pitch = 1.2;
+    window.speechSynthesis.speak(utterance);
+}
+
+// 語音識別功能
+function setupRecognition() {
+    if (!('webkitSpeechRecognition' in window)) {
+        console.warn("此瀏覽器不支援語音識別");
+        return;
+    }
+    recognition = new webkitSpeechRecognition();
+    recognition.lang = 'zh-CN';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onresult = (event) => {
+        const result = event.results[0][0].transcript;
+        const status = document.getElementById('rec-status');
+        console.log("聽到的內容:", result);
+        
+        // 簡單判斷：如果聽到的字包含在發音映射中或兩者相近
+        if (result.includes(selectedLetter) || result.includes(soundMapping[selectedLetter])) {
+            status.innerHTML = "🎉 <span style='color: #28A745'>發音正確！好棒！</span>";
+            addScore(2);
+        } else {
+            status.innerHTML = "🤏 <span style='color: #FF9F43'>差一點點，再試一次！</span>";
+        }
+    };
+
+    recognition.onend = () => {
+        document.getElementById('mic-btn').classList.remove('pulse');
+    };
+}
+
+function startListening() {
+    if (!recognition) {
+        alert("語音功能僅支援部分瀏覽器（如 Chrome/Safari）");
+        return;
+    }
+    document.getElementById('mic-btn').classList.add('pulse');
+    document.getElementById('rec-status').innerText = '正在聽你說話...';
+    recognition.start();
+}
+
+function addScore(points) {
+    score += points;
+    localStorage.setItem('pinyin_score', score);
+    updateProgressUI();
 }
 
 function closeModal() {
     document.getElementById('letter-modal').style.display = 'none';
+    if (recognition) recognition.stop();
 }
 
-function speakCurrent() {
-    speak(selectedLetter);
-}
-
-function speak(text) {
-    if (!('speechSynthesis' in window)) return;
-    
-    // Stop any existing speech
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    
-    // Try to find a Chinese voice
-    const voices = window.speechSynthesis.getVoices();
-    const zhVoice = voices.find(v => v.lang.includes('zh-CN')) || voices.find(v => v.lang.includes('zh'));
-    
-    if (zhVoice) {
-        utterance.voice = zhVoice;
-    }
-    
-    utterance.lang = 'zh-CN';
-    utterance.rate = 0.8; // Slower for kids
-    utterance.pitch = 1.1; // Slightly higher pitch for "cute" feel
-    
-    window.speechSynthesis.speak(utterance);
-}
-
-// Ensure voices are loaded
-window.speechSynthesis.onvoiceschanged = () => {
-    // Some browsers need this event to populate voices
-};
-
-// View Switching
+// 切換視圖 (首頁, 遊戲, 角色)
 function switchView(view) {
-    const homeView = document.getElementById('home-view');
-    const gameView = document.getElementById('game-view');
-    const navHome = document.getElementById('nav-home');
-    const navGame = document.getElementById('nav-game');
+    ['home-view', 'game-view', 'mascot-view'].forEach(v => {
+        document.getElementById(v).style.display = (v === view + '-view') ? 'block' : 'none';
+    });
+    
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.toggle('active', item.id === 'nav-' + view);
+    });
 
-    if (view === 'home') {
-        homeView.style.display = 'block';
-        gameView.style.display = 'none';
-        navHome.classList.add('active');
-        navGame.classList.remove('active');
-    } else {
-        homeView.style.display = 'none';
-        gameView.style.display = 'block';
-        navHome.classList.remove('active');
-        navGame.classList.add('active');
-        startNewRound();
-    }
+    if (view === 'game') startNewRound();
+    if (view === 'mascot') updateProgressUI();
 }
 
-// Game Logic
+// 簡單拼音挑戰遊戲
 let gameAnswer = '';
-
 function startNewRound() {
-    const gameGrid = document.getElementById('game-grid');
-    gameGrid.innerHTML = '';
-    
-    // Pick 4 random items from initials and finals
+    const grid = document.getElementById('game-grid');
+    grid.innerHTML = '';
     const allItems = [...pinyinData.shengmu, ...pinyinData.yunmu];
     const options = [];
     while (options.length < 4) {
-        const randomItem = allItems[Math.floor(Math.random() * allItems.length)];
-        if (!options.includes(randomItem)) {
-            options.push(randomItem);
-        }
+        const rand = allItems[Math.floor(Math.random() * allItems.length)];
+        if (!options.includes(rand)) options.push(rand);
     }
-    
     gameAnswer = options[Math.floor(Math.random() * options.length)];
-    
-    options.forEach((item, index) => {
+    options.forEach(item => {
         const card = document.createElement('div');
-        card.className = `card shengmu`;
-        card.style.animation = `zoomIn 0.3s ease-out ${index * 0.1}s both`;
+        card.className = 'card shengmu';
         card.innerHTML = `<span class="letter">${item}</span>`;
         card.onclick = () => checkAnswer(item, card);
-        gameGrid.appendChild(card);
+        grid.appendChild(card);
     });
-
-    // Speak the answer
     setTimeout(() => speak(gameAnswer), 500);
 }
 
-function replayGameSound() {
-    speak(gameAnswer);
-}
-
-function checkAnswer(selected, cardElement) {
+function checkAnswer(ans, el) {
     const status = document.getElementById('game-status');
-    if (selected === gameAnswer) {
-        status.innerText = "答對了！好棒！✨";
-        cardElement.style.background = "#D4EDDA";
-        cardElement.style.borderColor = "#28A745";
-        
-        speak("答對了");
-        
+    if (ans === gameAnswer) {
+        status.innerText = "答對了！加 5 分！✨";
+        el.style.background = "#D4EDDA";
+        addScore(5);
         setTimeout(() => {
             status.innerText = "聽聽看，這是哪一個？";
             startNewRound();
         }, 1500);
     } else {
-        status.innerText = "再試一次看看？💪";
-        cardElement.style.background = "#F8D7DA";
-        cardElement.style.borderColor = "#DC3545";
-        speak("再試一次");
-        
-        cardElement.classList.add('shake');
-        setTimeout(() => cardElement.classList.remove('shake'), 500);
+        status.innerText = "加油，再試試！💪";
+        el.classList.add('shake');
+        setTimeout(() => el.classList.remove('shake'), 500);
     }
 }
 
-// Initial render
+function changeMascot(id) {
+    const m = mascots.find(x => x.id === id);
+    if (score < m.unlockAt) return;
+    document.querySelectorAll('.mascot-img').forEach(img => img.src = m.img);
+    alert(`切換成功！現在是由 ${m.name} 陪你學習喔！`);
+}
+
 window.onload = initApp;
-
-// Close modal on click outside
-window.onclick = function(event) {
-    const modal = document.getElementById('letter-modal');
-    if (event.target == modal) {
-        closeModal();
-    }
-}
-
+window.speechSynthesis.onvoiceschanged = () => {};

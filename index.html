@@ -11,41 +11,62 @@
     <link rel="stylesheet" href="style.css">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="趣味拼音">
 </head>
 <body>
+
+<div class="score-badge"><i class="fas fa-star" style="color: var(--tertiary);"></i> <span id="total-score">0</span></div>
 
 <div class="container" id="app">
     <header>
         <img src="assets/mascot.png" alt="Mascot" class="mascot-img">
         <h1>趣味拼音</h1>
-        <p>跟著小熊貓一起快樂學拼音吧！</p>
+        <p>跟著可愛夥伴一起快樂學拼音吧！</p>
     </header>
 
+    <!-- 首頁視圖 -->
     <div id="home-view">
         <div class="category-tabs">
             <button class="tab-btn active" onclick="filterCategory('shengmu')">聲母</button>
             <button class="tab-btn" onclick="filterCategory('yunmu')">韻母</button>
-            <button class="tab-btn" onclick="filterCategory('overall')">整體認讀</button>
+            <button class="tab-btn" onclick="filterCategory('overall')">整體</button>
             <button class="tab-btn" onclick="filterCategory('tones')">聲調</button>
         </div>
-
-        <div class="grid" id="main-grid">
-            <!-- Content will be injected by JS -->
-        </div>
+        <div class="grid" id="main-grid"></div>
     </div>
 
+    <!-- 遊戲視圖 -->
     <div id="game-view" style="display: none;">
         <div class="game-container">
             <h2 id="game-status">聽聽看，這是哪一個？</h2>
-            <div id="game-heart-container" style="color: var(--primary); font-size: 1.5rem; margin: 10px 0;">
-                <i class="fas fa-heart"></i> <i class="fas fa-heart"></i> <i class="fas fa-heart"></i>
-            </div>
-            <button class="tab-btn active pulse" id="replay-btn" onclick="replayGameSound()">
+            <button class="tab-btn active pulse" onclick="replayGameSound()">
                 <i class="fas fa-volume-up"></i> 重播聲音
             </button>
-            <div class="grid" id="game-grid" style="margin-top: 30px;">
-                <!-- Game options inject here -->
+            <div class="grid" id="game-grid" style="margin-top: 30px;"></div>
+        </div>
+    </div>
+
+    <!-- 角色選擇視圖 -->
+    <div id="mascot-view" style="display: none;">
+        <h2 style="text-align: center; margin-bottom: 20px;">選擇你的小老師</h2>
+        <div class="mascot-selection-grid">
+            <div class="mascot-option" data-id="panda" onclick="changeMascot('panda')">
+                <img src="assets/mascot.png">
+                <p>小熊貓 (已解鎖)</p>
+            </div>
+            <div class="mascot-option locked" data-id="kitty" onclick="changeMascot('kitty')">
+                <img src="assets/mascot_kitty.png">
+                <p>萌小貓 (10分)</p>
+                <div class="lock-overlay"><i class="fas fa-lock"></i></div>
+            </div>
+            <div class="mascot-option locked" data-id="bunny" onclick="changeMascot('bunny')">
+                <img src="assets/mascot_bunny.png">
+                <p>跳跳兔 (30分)</p>
+                <div class="lock-overlay"><i class="fas fa-lock"></i></div>
+            </div>
+            <div class="mascot-option locked" data-id="tiger" onclick="changeMascot('tiger')">
+                <img src="assets/mascot_tiger.png">
+                <p>小帥虎 (50分)</p>
+                <div class="lock-overlay"><i class="fas fa-lock"></i></div>
             </div>
         </div>
     </div>
@@ -53,31 +74,32 @@
 
 <nav class="bottom-nav">
     <a href="javascript:void(0)" class="nav-item active" id="nav-home" onclick="switchView('home')">
-        <i class="fas fa-home"></i>
-        <span>首頁</span>
+        <i class="fas fa-home"></i><span>首頁</span>
     </a>
     <a href="javascript:void(0)" class="nav-item" id="nav-game" onclick="switchView('game')">
-        <i class="fas fa-gamepad"></i>
-        <span>遊戲</span>
+        <i class="fas fa-gamepad"></i><span>遊戲</span>
     </a>
-    <a href="#" class="nav-item">
-        <i class="fas fa-chart-line"></i>
-        <span>成就</span>
-    </a>
-    <a href="#" class="nav-item">
-        <i class="fas fa-cog"></i>
-        <span>設定</span>
+    <a href="javascript:void(0)" class="nav-item" id="nav-mascot" onclick="switchView('mascot')">
+        <i class="fas fa-paw"></i><span>角色</span>
     </a>
 </nav>
 
-<!-- Modal for Big Letter Display -->
+<!-- 學習彈窗 -->
 <div class="modal" id="letter-modal">
     <div class="modal-content">
         <span class="close-btn" onclick="closeModal()">&times;</span>
         <span class="big-letter" id="modal-letter">a</span>
-        <button class="tab-btn active" style="width: 100%;" onclick="speakCurrent()">
-            <i class="fas fa-volume-up"></i> 播放發音
-        </button>
+        
+        <div class="learning-controls">
+            <button class="control-btn" onclick="speakCurrent()">
+                <i class="fas fa-volume-up"></i><br>重聽
+            </button>
+            <button class="control-btn main-action" id="mic-btn" onclick="startListening()">
+                <i class="fas fa-microphone"></i><br>跟讀
+            </button>
+        </div>
+        
+        <p id="rec-status" style="margin-top: 15px; color: #636e72;">點擊綠色按鈕開始跟讀</p>
     </div>
 </div>
 
