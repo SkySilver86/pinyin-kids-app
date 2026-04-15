@@ -76,6 +76,12 @@ header h1 {
     gap: 10px;
     overflow-x: auto;
     padding: 10px 0 20px 0;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.category-tabs::-webkit-scrollbar {
+    display: none;
 }
 
 .tab-btn {
@@ -131,6 +137,8 @@ header h1 {
 
 .card.shengmu { color: var(--secondary); }
 .card.yunmu { color: var(--accent); }
+.card.yunmuTones { color: var(--primary); }
+.card.overallTones { color: var(--secondary); }
 
 /* Mascot Selection */
 .mascot-selection-grid {

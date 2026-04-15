@@ -29,7 +29,8 @@
             <button class="tab-btn active" onclick="filterCategory('shengmu')">聲母</button>
             <button class="tab-btn" onclick="filterCategory('yunmu')">韻母</button>
             <button class="tab-btn" onclick="filterCategory('overall')">整體</button>
-            <button class="tab-btn" onclick="filterCategory('tones')">聲調</button>
+            <button class="tab-btn" onclick="filterCategory('yunmuTones')">韻母聲調</button>
+            <button class="tab-btn" onclick="filterCategory('overallTones')">整體聲調</button>
         </div>
         <div class="grid" id="main-grid"></div>
     </div>
@@ -49,25 +50,7 @@
     <div id="mascot-view" style="display: none;">
         <h2 style="text-align: center; margin-bottom: 20px;">選擇你的小老師</h2>
         <div class="mascot-selection-grid">
-            <div class="mascot-option" data-id="panda" onclick="changeMascot('panda')">
-                <img src="assets/mascot.png">
-                <p>小熊貓 (已解鎖)</p>
-            </div>
-            <div class="mascot-option locked" data-id="kitty" onclick="changeMascot('kitty')">
-                <img src="assets/mascot_kitty.png">
-                <p>萌小貓 (10分)</p>
-                <div class="lock-overlay"><i class="fas fa-lock"></i></div>
-            </div>
-            <div class="mascot-option locked" data-id="bunny" onclick="changeMascot('bunny')">
-                <img src="assets/mascot_bunny.png">
-                <p>跳跳兔 (30分)</p>
-                <div class="lock-overlay"><i class="fas fa-lock"></i></div>
-            </div>
-            <div class="mascot-option locked" data-id="tiger" onclick="changeMascot('tiger')">
-                <img src="assets/mascot_tiger.png">
-                <p>小帥虎 (50分)</p>
-                <div class="lock-overlay"><i class="fas fa-lock"></i></div>
-            </div>
+            <!-- mascots inject here -->
         </div>
     </div>
 </div>
