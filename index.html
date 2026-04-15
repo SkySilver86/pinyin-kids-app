@@ -26,11 +26,11 @@
     <!-- 首頁視圖 -->
     <div id="home-view">
         <div class="category-tabs">
-            <button class="tab-btn active" onclick="filterCategory('shengmu')">聲母</button>
-            <button class="tab-btn" onclick="filterCategory('yunmu')">韻母</button>
-            <button class="tab-btn" onclick="filterCategory('overall')">整體</button>
-            <button class="tab-btn" onclick="filterCategory('yunmuTones')">韻母聲調</button>
-            <button class="tab-btn" onclick="filterCategory('overallTones')">整體聲調</button>
+            <button class="tab-btn active" data-category="shengmu" onclick="filterCategory('shengmu')">聲母</button>
+            <button class="tab-btn" data-category="yunmu" onclick="filterCategory('yunmu')">韻母</button>
+            <button class="tab-btn" data-category="overall" onclick="filterCategory('overall')">整體</button>
+            <button class="tab-btn" data-category="yunmuTones" onclick="filterCategory('yunmuTones')">韻母聲調</button>
+            <button class="tab-btn" data-category="overallTones" onclick="filterCategory('overallTones')">整體聲調</button>
         </div>
         <div class="grid" id="main-grid"></div>
     </div>
@@ -49,9 +49,7 @@
     <!-- 角色選擇視圖 -->
     <div id="mascot-view" style="display: none;">
         <h2 style="text-align: center; margin-bottom: 20px;">選擇你的小老師</h2>
-        <div class="mascot-selection-grid">
-            <!-- mascots inject here -->
-        </div>
+        <div class="mascot-selection-grid"></div>
     </div>
 </div>
 
@@ -69,7 +67,7 @@
 
 <!-- 學習彈窗 -->
 <div class="modal" id="letter-modal">
-    <div class="modal-content">
+    <div class="modal-content" onclick="event.stopPropagation()">
         <span class="close-btn" onclick="closeModal()">&times;</span>
         <span class="big-letter" id="modal-letter">a</span>
         

@@ -2,7 +2,6 @@ const pinyinData = {
     shengmu: ['b', 'p', 'm', 'f', 'd', 't', 'n', 'l', 'g', 'k', 'h', 'j', 'q', 'x', 'zh', 'ch', 'sh', 'r', 'z', 'c', 's', 'y', 'w'],
     yunmu: ['a', 'o', 'e', 'i', 'u', 'ü', 'ai', 'ei', 'ui', 'ao', 'ou', 'iu', 'ie', 'üe', 'er', 'an', 'en', 'in', 'un', 'ün', 'ang', 'eng', 'ing', 'ong'],
     overall: ['zhi', 'chi', 'shi', 'ri', 'zi', 'ci', 'si', 'yi', 'wu', 'yu', 'ye', 'yue', 'yuan', 'yin', 'yun', 'ying'],
-    // 韻母聲調模組
     yunmuTones: [
         'ā', 'á', 'ǎ', 'à', 'ō', 'ó', 'ǒ', 'ò', 'ē', 'é', 'ě', 'è',
         'ī', 'í', 'ǐ', 'ì', 'ū', 'ú', 'ǔ', 'ù', 'ǖ', 'ǘ', 'ǚ', 'ǜ',
@@ -10,7 +9,6 @@ const pinyinData = {
         'āo', 'áo', 'ǎo', 'ào', 'ōu', 'óu', 'ǒu', 'òu', 'iū', 'iú', 'iǔ', 'iù',
         'iē', 'ié', 'iě', 'iè', 'üē', 'üé', 'üě', 'üè', 'ēr', 'ér', 'ěr', 'èr'
     ],
-    // 整體聲調模組 (進階)
     overallTones: [
         'zhī', 'zhí', 'zhǐ', 'zhì', 'chī', 'chí', 'chǐ', 'chì', 'shī', 'shí', 'shǐ', 'shì',
         'zī', 'zí', 'zǐ', 'zì', 'cī', 'cí', 'cǐ', 'cì', 'sī', 'sí', 'sǐ', 'sì',
@@ -18,19 +16,16 @@ const pinyinData = {
     ]
 };
 
-// 精確發音映射：修正英文發音 & 移除多餘提示
 const soundMapping = {
     'b': '波', 'p': '坡', 'm': '摸', 'f': '佛', 'd': '得', 't': '特', 'n': '呢', 'l': '勒',
     'g': '哥', 'k': '科', 'h': '喝', 'j': '雞', 'q': '七', 'x': '希',
     'zh': '知', 'ch': '吃', 'sh': '師', 'r': '日', 'z': '資', 'c': '次', 's': '思',
     'y': '衣', 'w': '烏',
-    // 韻母原音
     'a': '啊', 'o': '喔', 'e': '鵝', 'i': '衣', 'u': '屋', 'ü': '淤',
     'ai': '哀', 'ei': '欸', 'ui': '威', 'ao': '熬', 'ou': '歐', 'iu': '優',
     'ie': '耶', 'üe': '約', 'er': '兒',
     'an': '安', 'en': '恩', 'in': '因', 'un': '溫', 'ün': '暈',
     'ang': '昂', 'eng': '亨', 'ing': '英', 'ong': '翁',
-    // 整體認讀音
     'zhi': '知', 'chi': '吃', 'shi': '師', 'ri': '日', 'zi': '資', 'ci': '刺', 'si': '思',
     'yi': '衣', 'wu': '屋', 'yu': '淤', 'ye': '耶', 'yue': '約'
 };
@@ -72,23 +67,37 @@ function updateProgressUI() {
 }
 
 function filterCategory(category) {
+    console.log("切換分類為:", category);
     currentCategory = category;
+    
+    // 透過 data-category 屬性精確切換 active 狀態
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active');
-        if (btn.getAttribute('onclick').includes(`'${category}'`)) btn.classList.add('active');
+        if (btn.getAttribute('data-category') === category) {
+            btn.classList.add('active');
+        }
     });
+
     renderCards(category);
 }
 
 function renderCards(category) {
     const grid = document.getElementById('main-grid');
+    if (!grid) return;
+    
     grid.innerHTML = '';
-    const data = pinyinData[category] || [];
-    data.forEach((item, index) => {
+    const letters = pinyinData[category];
+    
+    if (!letters) {
+        console.error("找不到該分類的資料:", category);
+        return;
+    }
+
+    letters.forEach((item, index) => {
         const isLearned = learned.includes(item);
         const card = document.createElement('div');
         card.className = `card ${category} ${isLearned ? 'learned' : ''}`;
-        card.style.animation = `zoomIn 0.3s ease-out ${index * 0.05}s both`;
+        card.style.animation = `zoomIn 0.3s ease-out ${index * 0.03}s both`;
         card.innerHTML = `<span class="letter">${item}</span>${isLearned ? '<i class="fas fa-check-circle checkmark"></i>' : ''}`;
         card.onclick = () => openLetter(item);
         grid.appendChild(card);
@@ -105,7 +114,7 @@ function openLetter(letter) {
     if (!learned.includes(letter)) {
         learned.push(letter);
         localStorage.setItem('pinyin_learned', JSON.stringify(learned));
-        renderCards(currentCategory);
+        // 不刷新整個 grid，只更新當前卡片樣式可減少閃爍，這裡為簡單起見先保留邏輯
     }
 }
 
@@ -113,16 +122,14 @@ function speak(text) {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     
-    // 優先尋找映射，否則直接讀取帶聲調的文字（由 Google 語音處理）
     const soundContent = soundMapping[text] || text;
     const utterance = new SpeechSynthesisUtterance(soundContent);
     const voices = window.speechSynthesis.getVoices();
-    // 強制進入中文語境
     const zhVoice = voices.find(v => v.lang.includes('zh-CN')) || voices.find(v => v.lang.includes('zh'));
     
     if (zhVoice) utterance.voice = zhVoice;
     utterance.lang = 'zh-CN';
-    utterance.rate = 0.7; // 給小孩足夠的反應時間
+    utterance.rate = 0.7;
     utterance.pitch = 1.1;
     window.speechSynthesis.speak(utterance);
 }
@@ -136,7 +143,6 @@ function setupRecognition() {
     recognition.onresult = (event) => {
         const result = event.results[0][0].transcript;
         const status = document.getElementById('rec-status');
-        // 模糊匹配：聽到的內容包含目標音節
         if (result.includes(selectedLetter) || result.includes(soundMapping[selectedLetter])) {
             status.innerHTML = "🎉 <span style='color: #28A745'>發音正確！好棒！</span>";
             addScore(2);
@@ -163,9 +169,9 @@ function addScore(points) {
 function closeModal() {
     document.getElementById('letter-modal').style.display = 'none';
     if (recognition) recognition.stop();
+    renderCards(currentCategory); // 關閉後重新渲染以顯示勾選標記
 }
 
-// 點擊空白處關閉彈窗
 window.onclick = function(event) {
     const modal = document.getElementById('letter-modal');
     if (event.target == modal) {
